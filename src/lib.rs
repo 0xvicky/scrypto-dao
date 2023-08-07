@@ -2,6 +2,17 @@ use scrypto::prelude::*;
 
 #[blueprint]
 mod token_sale {
+
+    enable_method_auth! {
+          roles{
+            seller=>updatable_by:[];
+          },
+        methods {
+            withdraw => restrict_to: [OWNER];
+            change_price =>restrict_to:[OWNER];
+            buy=>PUBLIC;
+        }
+    }
     struct TokenSale {
         // Define what resources and data will be managed by Hello components
         vicky_vault: Vault,
@@ -31,13 +42,9 @@ mod token_sale {
                     "description"=>"One who can withdraw XRD and can price_per_token",locked;
                   }
                 ))
+                .divisibility(DIVISIBILITY_NONE)
                 .mint_initial_supply(1);
 
-            //Giving access rules to the component
-            let access_rules: AccessRules = AccessRules::new().method(
-                "withdraw_funds",
-                rule!(require(seller_badge.resource_address())),
-            );
             // Instantiate a Hello component, populating its vault with our supply of 1000 HelloToken
             let component = Self {
                 vicky_vault: Vault::with_bucket(my_bucket),
@@ -45,7 +52,9 @@ mod token_sale {
                 price_per_token: price_per_token,
             }
             .instantiate()
-            .prepare_to_globalize(OwnerRole::None)
+            .prepare_to_globalize(OwnerRole::Fixed(rule!(require(
+                seller_badge.resource_address()
+            ))))
             .globalize();
 
             (component, seller_badge)
