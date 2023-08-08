@@ -4,15 +4,16 @@ use scrypto::prelude::*;
 mod token_sale {
 
     enable_method_auth! {
-          roles{
-            seller=>updatable_by:[];
-          },
+        roles {
+            seller => updatable_by: [];
+        },
         methods {
-            withdraw => restrict_to: [OWNER];
-            change_price =>restrict_to:[OWNER];
-            buy=>PUBLIC;
+            withdraw => restrict_to: [seller];
+            change_price => restrict_to:[seller];
+            buy => PUBLIC;
         }
     }
+
     struct TokenSale {
         // Define what resources and data will be managed by Hello components
         vicky_vault: Vault,
@@ -45,16 +46,18 @@ mod token_sale {
                 .divisibility(DIVISIBILITY_NONE)
                 .mint_initial_supply(1);
 
+            let seller_badge_address = seller_badge.resource_address();
             // Instantiate a Hello component, populating its vault with our supply of 1000 HelloToken
             let component = Self {
                 vicky_vault: Vault::with_bucket(my_bucket),
                 xrd_vault: Vault::new(RADIX_TOKEN), //To instantiate radix token
-                price_per_token: price_per_token,
+                price_per_token,
             }
             .instantiate()
-            .prepare_to_globalize(OwnerRole::Fixed(rule!(require(
-                seller_badge.resource_address()
-            ))))
+            .prepare_to_globalize(OwnerRole::None)
+            .roles(roles!(
+                seller=>rule!(require(seller_badge_address));
+            ))
             .globalize();
 
             (component, seller_badge)
@@ -63,7 +66,7 @@ mod token_sale {
         // This is a method, because it needs a reference to self.  Methods can only be called on components
         pub fn buy(&mut self, funds: Bucket) -> Bucket {
             info!(
-                "My balance is: {} vicky token. Now giving away some tokens!",
+                "My balance is: {} evicky token. Now giving away some tokens!",
                 self.vicky_vault.amount()
             );
 

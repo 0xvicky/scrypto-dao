@@ -1,2 +1,6 @@
 To publish the packge: "resim publish ."
 
+Packg Address: package_sim1p58aa67455zqgm7pz7aw7nzl62tth68ywd49vjyan6n2czh7fdrej3
+Component Addr: component_sim1cp5nfkfgeha97e0u4nz529dvyrgatfgaharqdjn8s76v2wpdj74sy9
+Res-1 : resource_sim1tkm44amnmdrlt9gltf4sef6c83e3s6herf2epce0suc9xstsvqq4ph
+Res-2 : resource_sim1t4pla49gzfs930ud8cqqhml36nkfe8f4qr0nxka7j8urlmt5grtlcj
