@@ -6,10 +6,11 @@ mod token_sale {
     enable_method_auth! {
         roles {
             seller => updatable_by: [];
+            admin => updatable_by:[seller];
         },
         methods {
             withdraw => restrict_to: [seller];
-            change_price => restrict_to:[seller];
+            change_price => restrict_to:[seller, admin];
             buy => PUBLIC;
         }
     }
@@ -24,7 +25,23 @@ mod token_sale {
     impl TokenSale {
         // Implement the functions and methods which will manage those resources and data
         // This is a function, and can be called directly on the blueprint once deployed
-        pub fn new(price_per_token: Decimal) -> (Global<TokenSale>, Bucket) {
+        pub fn new(price_per_token: Decimal) -> (Global<TokenSale>, Bucket, Bucket) {
+            //Function to create the authorities : SEller
+            pub fn instantiate_authority(name: &str, symbol: &str) -> Bucket {
+                let badge: Bucket = ResourceBuilder::new_fungible(OwnerRole::None)
+                    .metadata(metadata!(
+                      init{
+                        "name"=>name,locked;
+                        "symbol"=>symbol,locked;
+                        "description"=>"One who can withdraw XRD and can price_per_token",locked;
+                      }
+                    ))
+                    .divisibility(DIVISIBILITY_NONE)
+                    .mint_initial_supply(1);
+
+                badge
+            }
+
             // Create a new token called "HelloToken," with a fixed supply of 1000, and put that supply into a bucket
             let my_bucket: Bucket = ResourceBuilder::new_fungible(OwnerRole::None)
                 .metadata(metadata!(
@@ -34,19 +51,11 @@ mod token_sale {
                     }
                 ))
                 .mint_initial_supply(1000);
+            let (seller_badge, admin_badge) = (
+                instantiate_authority("Seller Badge", "SELLER"),
+                instantiate_authority("Admin Badge", "ADMIN"),
+            );
 
-            let seller_badge: Bucket = ResourceBuilder::new_fungible(OwnerRole::None)
-                .metadata(metadata!(
-                  init{
-                    "name"=>"Seller Badge",locked;
-                    "symbol"=>"SELLER",locked;
-                    "description"=>"One who can withdraw XRD and can price_per_token",locked;
-                  }
-                ))
-                .divisibility(DIVISIBILITY_NONE)
-                .mint_initial_supply(1);
-
-            let seller_badge_address = seller_badge.resource_address();
             // Instantiate a Hello component, populating its vault with our supply of 1000 HelloToken
             let component = Self {
                 vicky_vault: Vault::with_bucket(my_bucket),
@@ -56,11 +65,12 @@ mod token_sale {
             .instantiate()
             .prepare_to_globalize(OwnerRole::None)
             .roles(roles!(
-                seller=>rule!(require(seller_badge_address));
+                seller=>rule!(require(seller_badge.resource_address()));
+                admin =>rule!(require(admin_badge.resource_address()));
             ))
             .globalize();
 
-            (component, seller_badge)
+            (component, seller_badge, admin_badge)
         }
 
         // This is a method, because it needs a reference to self.  Methods can only be called on components
